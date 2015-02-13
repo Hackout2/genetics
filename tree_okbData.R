@@ -1,9 +1,33 @@
-#' Function to plot phylogenies showing frequencies of the unique sequences
+#' Plot phylogenies with frequencies of unique sequences
+#'
+#' This function plots a phylogeny built from the unique sequences
+#' together with a representation of the abundance (frequencies) of
+#' these in the data.
 #'
 #' @param x an \linkS4class{obkData} object.
-#' @param ncatmax an integer giving the number of categories of haplotype frequency
+#' @param ncatmax an integer giving the number of categories of
+#' haplotype frequency
 #' @param colfun a function to define the colours
+#' @return nothing, the results are printed on the current graphical device.
 #' @author Emmanuel Paradis
+#'
+#' @details First, the unique sequences are extracted using the
+#' function \code{haplotype} (in \pkg{pegas}). Then, a
+#' neighbor-joigning (NJ) tree is built. The tree is plotted on the
+#' left-hand side of the graph, and the frequencies of each unique
+#' sequence is represented in two ways: coloured labels at the tips of
+#' the tree (with the colour scale drawn at the top), and a horizontal
+#' barplot on the right-hand side of the graph.
+#'
+#' The functions scan the data for the different genes and plots the
+#' output successively (the user is asked to type enter)
+#'
+#' @examples
+#' \dontrun{
+#' require(OutbreakTools)
+#' data(ToyOutbreak)
+#' tree_okbData(ToyOutbreak)
+#' }
 
 tree_okbData <- function(x, ncatmax = 10, colfun = topo.colors)
 {
@@ -14,11 +38,7 @@ tree_okbData <- function(x, ncatmax = 10, colfun = topo.colors)
     for (i in seq_along(LOCI)) {
         cat("Processing data from", LOCI[i], "\n")
 
-        BF <- base.freq(dna, TRUE, TRUE)
-        nb <- sum(BF)
-        nambi <- sum(BF[-(1:4)])/nb
-        warning(paste0(round(nambi, 3), "% of ambiguous or unknown sites (or alignment gaps) out of ", nb))
-
+        dna <- DNA[[i]]
         h <- haplotype(dna)
         nh <- nrow(h)
         attr(h, "index") <- lapply(attr(h, "index"), function(x) rownames(dna)[x])
@@ -34,10 +54,13 @@ tree_okbData <- function(x, ncatmax = 10, colfun = topo.colors)
         n <- Ntip(phy)
         cat("Type enter to continue\n")
         readLines(n = 1)
-        plot(phy, show.tip.label = FALSE, x.lim = sum(phy$edge.length)/Nedge(phy) + max(hfreq))
+        lttcoords <- ltt.plot.coords(phy, backward = FALSE)
+        xlm <- lttcoords[nrow(lttcoords), 1] + max(hfreq)
+        plot(phy, show.tip.label = FALSE, x.lim = xlm)
+        axisPhylo()
         phydataplot(hfreq, phy, "b")
         tiplabels(text = "   ", bg = co[cat], adj = 0)
-        title(sub = LOCI[i])
+        mtext(LOCI[i], at = 0, font = 2)
 
         psr <- par("usr")
         xx <- psr[2]/2
@@ -47,4 +70,3 @@ tree_okbData <- function(x, ncatmax = 10, colfun = topo.colors)
                horiz = TRUE, xpd = TRUE)
     }
 }
-

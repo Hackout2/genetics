@@ -1,7 +1,37 @@
-#' Functions to plot phylogenies and time
+#' Plot Phylogenies and Time
+#'
+#' These two functions plot a tree built from the sequences available
+#' in the \linkS4class{obkData} object together with the time of
+#' sampling of each sequence (also taken from the same object).
 #'
 #' @param x an \linkS4class{obkData} object.
+#' @return nothing, the results are plotted on the current graphical device.
 #' @author Emmanuel Paradis
+#'
+#' @details The first function \code{tree_time_1} plots the NJ tree
+#' growing upwards, without the branch length information, and the
+#' time axis is represented on top with from left to right. The second
+#' function \code{tree_time_2} plots the NJ tree in the usual way,
+#' from left to right, with the branch length information, and the
+#' time axis is represented on bottom also from left to right.
+#'
+#' Coloured lines show the link between the tips of the tree (i.e.,
+#' unique sequences) and the time of sampling of the individuals. The
+#' colour scale goes from blue (oldest dates) to red (youngest dates).
+#'
+#' The functions scan the data for the different genes and plots the
+#' output successively (the user is asked to type enter).
+#'
+#' @note The neighbor-joigning (NJ) method reconstructs unrooted trees
+#' whereas the present functions represent them as rooted.
+#'
+#' @examples
+#' \dontrun{
+#' require(OutbreakTools)
+#' data(ToyOutbreak)
+#' tree_time_1(ToyOutbreak)
+#' tree_time_2(ToyOutbreak)
+#' }
 
 tree_time_1 <- function(x)
 {
@@ -14,6 +44,8 @@ tree_time_1 <- function(x)
     for (i in seq_along(LOCI)) {
         cat("Processing data from", LOCI[i], "\n")
 
+        dna <- DNA[[i]]
+
         h <- haplotype(dna)
         nh <- nrow(h)
         attr(h, "index") <- lapply(attr(h, "index"), function(x) rownames(dna)[x])
@@ -21,7 +53,7 @@ tree_time_1 <- function(x)
         phy <- nj(dist.dna(h, "N", pairwise.deletion = TRUE))
         n <- Ntip(phy)
 
-        sel <- meta$locus == LOCI[i]
+        sel <- META$locus == LOCI[i]
         submeta <- META[sel, ]
         dates <- as.integer(submeta$date)
         range.dates <- range(dates)
@@ -31,7 +63,7 @@ tree_time_1 <- function(x)
         x1 <- transfdates
         names(x1) <- rownames(submeta)
         x2 <- x1
-        cat("Type enter to continue\n")
+        cat("Type enter to plot\n")
         readLines(n = 1)
 
         plot(phy, "p", FALSE, show.tip.label = FALSE, direction = "u",
@@ -47,11 +79,8 @@ tree_time_1 <- function(x)
         y2 <- psr[4] - 0.1
         y1 <- max(lastPP$yy) + 0.1
         segments(x2, y1, x1, y2, lwd = 1, col = rgb(x1/n, 0, 1 - x1/n, alpha = .5))
+        at <- pretty(dates)
         axis(3, at = footrans(at), labels = as.Date(at, origin = "1970-01-01"))
-        ## <FIXME>
-        ## this apparently doesn't work
-        mtext(LOCI[i], 1)
-        ## </FIXME>
     }
 }
 
@@ -84,7 +113,9 @@ tree_time_2 <- function(x)
 
     cat("okbData object has", length(LOCI), "genetic data set(s)\n")
     for (i in seq_along(LOCI)) {
-        cat("Processing data from", LOCI[i], "\n")
+        cat("Processing data from", LOCI[i], "...\n")
+
+        dna <- DNA[[i]]
 
         h <- haplotype(dna)
         nh <- nrow(h)
@@ -93,12 +124,12 @@ tree_time_2 <- function(x)
         phy <- nj(dist.dna(h, "N", pairwise.deletion = TRUE))
         n <- Ntip(phy)
 
-        sel <- meta$locus == LOCI[i]
+        sel <- META$locus == LOCI[i]
         submeta <- META[sel, ]
         dates <- as.integer(submeta$date)
         range.dates <- range(dates)
 
-        cat("Type enter to continue\n")
+        cat("Type enter to plot\n")
         readLines(n = 1)
 
         plot(phy, "p", show.tip.label = FALSE, font = 1, label.offset = 1, node.depth = 2, y.lim = c(-100, n), edge.width = 2)
@@ -110,6 +141,7 @@ tree_time_2 <- function(x)
 
         y1 <- psr[3]
         lastPP <- get("last_plot.phylo", envir = .PlotPhyloEnv)
+        index <- attr(h, "index")
         x2 <- y2 <- numeric(length(dates))
         names(x2) <- names(y2) <- rownames(submeta)
         for (j in 1:n) {
